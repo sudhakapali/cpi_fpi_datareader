@@ -1,5 +1,4 @@
 import argparse
-from dateutil.parser import parse
 import re
 import datetime
 import numpy as np
