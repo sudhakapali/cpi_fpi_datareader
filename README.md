@@ -1,2 +1,2 @@
 # cpi_fpi_datareader
-Repo for reading the thermospheric winds and temperature data products measured using CPI's FPI instruments
+Python code to read Thermospheric Winds and Temperature data products measured using CPI's Fabry-Perot Interferometer (FPI) instruments
