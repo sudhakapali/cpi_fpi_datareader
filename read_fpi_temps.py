@@ -39,13 +39,14 @@ def fpi_temps_filereader(temps_datfile):
                 break
         # Get the name of the experiment (Redline, Greenline)
         expt = ''
-        if( "Redline".casefold() in (temps_hdr_lines[0]).casefold() ):
-            expt = "Redline"
-        if( "GreenLine".casefold() in (temps_hdr_lines[0]).casefold() ):
+        if( "Red".casefold() in (temps_hdr_lines[0]).casefold() ):
+            loc_name_end_idx = (temps_hdr_lines[0].casefold()).find("Red".casefold()) - 1
+            expt = "RedLine"
+        if( "Green".casefold() in (temps_hdr_lines[0]).casefold() ):
+            loc_name_end_idx = (temps_hdr_lines[0].casefold()).find("Green".casefold()) - 1
             expt = "GreenLine"
 
         # Get the location name (which is the entire string in line 0 preceding the experiment label)
-        loc_name_end_idx = (temps_hdr_lines[0].casefold()).find(expt.casefold()) - 1
         location_name = temps_hdr_lines[0][0:loc_name_end_idx]
 
         # Get the start date of the observation. Since the year is denoted by two digits, add 2000

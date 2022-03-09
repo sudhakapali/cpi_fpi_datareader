@@ -45,13 +45,14 @@ def fpi_winds_filereader(winds_datfile):
         
         # Get the name of the experiment (Redline, Greenline)
         expt = ''
-        if( "Redline".casefold() in (winds_hdr_lines[0]).casefold() ):
-            expt = "Redline"
-        if( "GreenLine".casefold() in (winds_hdr_lines[0]).casefold() ):
+        if( "Red".casefold() in (winds_hdr_lines[0]).casefold() ):
+            loc_name_end_idx = (winds_hdr_lines[0].casefold()).find("Red".casefold()) - 1
+            expt = "RedLine"
+        if( "Green".casefold() in (winds_hdr_lines[0]).casefold() ):
+            loc_name_end_idx = (winds_hdr_lines[0].casefold()).find("Green".casefold()) - 1
             expt = "GreenLine"
 
         # Get the location name (which is the entire string in line 0 preceding the experiment label)
-        loc_name_end_idx = (winds_hdr_lines[0].casefold()).find(expt.casefold()) - 1
         location_name = winds_hdr_lines[0][0:loc_name_end_idx]
 
         # Get the start date of the observation. Since the year is denoted by two digits, add 2000
@@ -90,13 +91,14 @@ def fpi_winds_filereader(winds_datfile):
             # tokenize the line using spaces and the "=" character
             segments = re.split('[ =]+', line)
             n_items = int(segments[0])
+            lookdir = segments[1]
             hmax = read_float(segments[5])
             emission_layer = read_float(segments[8])
         except :
             print("Unexpected error:", sys.exc_info()[0])
             return (False, 0, 0, 0)
         else :
-            return (True, n_items, hmax, emission_layer)
+            return (True, n_items, lookdir, hmax, emission_layer)
 
     def read_vert_winds_summary():
         try:
@@ -117,7 +119,7 @@ def fpi_winds_filereader(winds_datfile):
         # Among other details, it contains the number of wind vectors measured in this 
         # direction.
         # This line also has the assumed hmax and emission layer.
-        (status, nvectors, hmax, emission_layer) = read_winds_cardinal_summary()
+        (status, nvectors, lookdir, hmax, emission_layer) = read_winds_cardinal_summary()
         """
         Skip the next couple of lines. The first line has the column names, and the 
         code will generate column names that correspond to the ones present in the .dat file.
@@ -130,8 +132,8 @@ def fpi_winds_filereader(winds_datfile):
             nvectors,
             dtype={
                 'names':
-                ['imgno', 'ut1', 'ut2', 'ut_mid', 'los', 'los_err', 'ilos', 'ilos_err', 'wind', 'wind_err', 'gradient', 'gradient_err', 'wind_desc', 'qcode'],
-                'formats':['i4', 'f4', 'f4', 'f4', 'f4', 'f4', 'f4', 'f4', 'f4', 'f4','f4', 'f4', 'U10', 'i4']})
+                ['imgno', 'ut1', 'ut2', 'ut_mid', 'lookdir', 'los', 'los_err', 'ilos', 'ilos_err', 'wind', 'wind_err', 'gradient', 'gradient_err', 'wind_desc', 'qcode'],
+                'formats':['i4', 'f4', 'f4', 'f4', 'U10', 'f4', 'f4', 'f4', 'f4', 'f4', 'f4','f4', 'f4', 'U10', 'i4']})
  
         #  assemble wind vector details
         for j in range(0, nvectors) :
@@ -157,6 +159,7 @@ def fpi_winds_filereader(winds_datfile):
             err_wind = read_float(wind_err_cols[3])
             err_gradient = read_float(wind_err_cols[4])
             # now populate the arrays with the values just read
+            wind_data["lookdir"] = lookdir
             wind_data[j]['imgno'] = imgNo
             wind_data[j]['ut1'] = UT_1
             wind_data[j]['ut2'] = UT_2
@@ -251,7 +254,7 @@ def fpi_winds_filereader(winds_datfile):
 
     winds_data = {
         "header" : winds_hdr,
-        "meriodional" : merid_winds_dict,
+        "meridional" : merid_winds_dict,
         "zonal" : zonal_winds_dict,
         "vertical" : vert_winds_dict}
 
@@ -269,7 +272,7 @@ if __name__ == "__main__":
     print ("Winds header data:")
     print (fpi_winds["header"])
     print ("meridional winds:")
-    print (fpi_winds["meriodional"])
+    print (fpi_winds["meridional"])
     print ("Zonal winds:")
     print (fpi_winds["zonal"])
     print ("Relative vertical winds:")

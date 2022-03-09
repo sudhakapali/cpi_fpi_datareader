@@ -1,10 +1,19 @@
 import glob
 import os
-import matplotlib.pyplot as plot
 import numpy as np
+import matplotlib.pyplot as plot
 from read_fpi_temps import fpi_temps_filereader
 
+"""
+    Test program to read the FPI Thermospheric temperature data products file (*temps.dat)
+    This program reads the temperature data products files in the "data" sub-folder,
+    produces a Temperature vs. UT plot for each file that is read, and save the plot
+    "output" folder of the project to a file with the same basename as the input file
+    and a ".png" extension.
+    For example, the output plot created for "mh220301_temps.dat" is "mh220301_temps.png"
+"""
 if __name__ == "__main__":
+    # datadir is the directory where the *_temps.dat files are located.
     datadir = "."+os.sep + "data" + os.sep + "*_temps.dat"
     plotdir = "."+ os.sep + "output" + os.sep
     temps_data_files = glob.glob(datadir) 
@@ -20,10 +29,10 @@ if __name__ == "__main__":
         east_pos = np.where( (temps_data["zn"] == 45) & (temps_data["az"] == 90))
         west_pos = np.where( (temps_data["zn"] == 45) & (temps_data["az"] == 270))
         # gather the info needed to plot these measurements
-        tmid_n = temps_data["ut_mid"][north_pos]
-        temp_n = temps_data["temp"][north_pos]
-        e_temp_n = temps_data["e_temp"][north_pos]
-        e_time_n = temps_data["e_time"][north_pos]
+        tmid_n = temps_data["ut_mid"][north_pos]  # acquisition time
+        temp_n = temps_data["temp"][north_pos]    # temperature in Kelvin
+        e_temp_n = temps_data["e_temp"][north_pos]  # +/- error in temperature
+        e_time_n = temps_data["e_time"][north_pos]  # +/- error in time
         tmid_s = temps_data["ut_mid"][south_pos]
         temp_s = temps_data["temp"][south_pos]
         e_temp_s = temps_data["e_temp"][south_pos]
@@ -65,8 +74,10 @@ if __name__ == "__main__":
         ax[0].set(xlabel= "time (UT) hrs", ylabel = "Temperature (K)")
         ax[1].set(xlabel= "time (UT) hrs")
         plot.ylim([0,2000])
-        titleString =  obs_date_str+ " " + expt_name + " " + loc_name + \
-            "  (lat, lon):  (" + lat_str + ", "  + lon_str  + ")"
+ 
+        titleString =  loc_name +   "  (lat, lon):  (" + lat_str + ", "  + lon_str  + ")" + \
+             "\n" + obs_date_str + " " + expt_name 
+
         fig.suptitle(titleString)
         ax[1].legend()
         ax[0].legend()
