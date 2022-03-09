@@ -1,6 +1,8 @@
 # CPI_FPI_dataproduct_reader
 
-Python file readers for the CPI's FPI winds and temperature data product files, which are produced by CPI's FPI data analysis software.
+Python file readers (read_fpi_temps.py and read_fpi_winds.py) for CPI's FPI winds and temperature data product files, which are produced by CPI's FPI data analysis software.
+<br>
+Also included are example programs (test_fpi_winds.py and test_fpi_temps.py) that demostrate the usage of the reader program.
 <li> docs : Documentation of the data format of the FPI winds data product files (*winds.dat) and temperature data product files (*temps.dat)
 <li>read_fpi_temps.py : Python program to read CPI FPI temperature data product files
 <li>read_fpi_winds.py : Python program to read CPI FPI winds data product files
