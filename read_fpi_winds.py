@@ -147,10 +147,7 @@ def fpi_winds_filereader(winds_datfile):
             i_los = read_float(wind_rec_cols[5])
             wind = read_float(wind_rec_cols[6])
             gradient = read_float(wind_rec_cols[7])
-            if (len(wind_rec_cols) == 9) :
-                wind_desc = ' '
-            else:
-                wind_desc = wind_rec_cols[8]
+            wind_desc = ' '.join(wind_rec_cols[8:-1])
             qcode = read_float(wind_rec_cols[-1])
             wind_err_record = next(winds_datalines)
             wind_err_cols =re.split(' +', wind_err_record)

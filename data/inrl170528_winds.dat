@@ -1,0 +1,71 @@
+Trivandrum,India Redline-India Wind data
+Plate gap:  1.4819 FSR:   85.7545 bin units sensitivity:180.00000 [bin units*(adu/pixel)]*1/R
+in170528   flats: in170528  quadratic background, Poisson weighting, ( sky  )   moon phase:  Waxing crescent 
+FSR_sky:  85.75452 bin units,  0.13393 angstroms, 6.373 km/s
+Wind data corrected for instrument drift
+meridional wind vectors calculated:   6
+no zonal wind vectcors calculated
+avg. LOS N (m/s):    0.0 +/-  16.4 avg. error:    0.2  avg. LOS S (m/s):   34.0 +/-  29.3 avg. error:    0.4
+avg. LOS E (m/s):    0.0 +/-   0.0 avg. error:    0.0  avg. LOS W (m/s):   20.6 +/-  16.3 avg. error:    0.3
+avg. meridional (m/s):   12.3 +/-   9.1 avg. error:    30.3
+     avg. zonal (m/s):    0.0 +/-   0.0 avg. error:     0.0
+  avg. vertical (m/s):    0.0 +/-   8.6 avg. error:     0.1
+data quality: code=0 trustworthy;  code=1 be suspicious;  code=2 be dubious
+Location latitude: 8.52, longitude: 76.94
+SS-Analyze V05.02
+ 
+ 
+ 
+ 
+   3 North (postive poleward) Hmax: 250.0 emission layer: 210.0
+ rec  UT1   UT2  UTmid    LOS N   iLOS S  meridional  Grad S->N            code
+     hours hours hours     m/s      m/s         m/s  (m/s)/500km
+  16 14.57 14.62 14.59    -6.36    19.89        6.76   -31.24 converging     2
+ +/-                     0.0446   0.2010      0.1158   0.5348
+  21 15.03 15.08 15.05    18.71    15.83       17.27     3.42                2
+ +/-                     0.2444   0.2222      0.4681   0.0927
+  26 15.32 15.37 15.34   -12.25    15.52        1.64   -33.07 converging     2
+ +/-                     0.1799   0.2421      0.0495   1.0013
+   3 South (postive poleward) Hmax: 250.0 emission layer: 210.0
+ rec  UT1   UT2  UTmid    LOS S   iLOS N  meridional  Grad S->N            code
+     hours hours hours     m/s      m/s         m/s  (m/s)/500km
+  18 14.69 14.74 14.71    19.89    -0.01        9.94   -23.68 converging     2
+ +/-                     0.2010   0.0952    179.6795 428.0353
+  23 15.14 15.19 15.17    14.45     6.29       10.37    -9.72                2
+ +/-                     0.2295   0.2185      0.5251   0.4923
+ 138 23.78 23.83 23.80    67.71   -12.25       27.73   -95.19 converging     2
+ +/-                     0.8593   0.1799      0.7591   2.6060
+   0  East (positive eastward) Hmax: 250.0 emission layer: 210.0
+ rec  UT1   UT2  UTmid    LOS E   iLOS W      zonal   Grad W->E            code
+     hours hours hours     m/s      m/s         m/s  (m/s)/500km
+   4  West (positive eastward) Hmax: 250.0 emission layer: 210.0
+ rec  UT1   UT2  UTmid    LOS W   iLOS E      zonal   Grad W->E            code
+     hours hours hours     m/s      m/s         m/s  (m/s)/500km
+  19 14.74 14.79 14.77     1.96     0.00        0.00     0.00 no zonal V     1
+ +/-                     0.0188   0.0000      0.0000   0.0000
+  24 15.20 15.25 15.23    11.99     0.00        0.00     0.00 no zonal V     2
+ +/-                     0.1754   0.0000      0.0000   0.0000
+  29 15.49 15.54 15.52    32.32     0.00        0.00     0.00 no zonal V     2
+ +/-                     0.4953   0.0000      0.0000   0.0000
+ 139 23.84 23.89 23.86    36.02     0.00        0.00     0.00 no zonal V     2
+ +/-                     0.3903   0.0000      0.0000   0.0000
+  3 zenith rest positions and relative vertical velocity (negative downward)
+vertical velocity is relative to the nightly average
+rec UT1    UT2   UTmid   bin     Ebin   vel. z   E vel.  code
+    hrs.   hrs.  hrs.     #       #       m/s     m/s
+ 15 14.51 14.56 14.54   58.723   0.5034     8.6     0.1     1
+        order #  2     144.279   0.5351
+        order #  3     230.004   0.5739
+        order #  4     315.612   0.6199
+        order #  5     401.032   0.6726
+ 20 14.97 15.02 14.99   58.852   1.0091     0.1     0.0     2
+        order #  2     144.497   1.0937
+        order #  3     230.083   1.1864
+        order #  4     315.650   1.2590
+        order #  5     401.187   1.3648
+140 24.06 24.11 24.09   58.898   0.5851    -8.7     0.1     2
+        order #  2     144.582   0.6190
+        order #  3     230.324   0.6759
+        order #  4     315.773   0.7181
+        order #  5     401.247   0.7641
+Raw data available upon request
