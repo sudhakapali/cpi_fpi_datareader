@@ -1,0 +1,436 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="Python" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="Python" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>read_fpi_temps &mdash; cpi_fpi_dataproducts_reader 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> cpi_fpi_dataproducts_reader
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">cpi_fpi_datareader</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">cpi_fpi_dataproducts_reader</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>read_fpi_temps</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for read_fpi_temps</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="viewcode-block" id="fpi_temps_filereader"><a class="viewcode-back" href="../read_fpi_temps.html#read_fpi_temps.fpi_temps_filereader">[docs]</a><span class="k">def</span> <span class="nf">fpi_temps_filereader</span><span class="p">(</span><span class="n">temps_datfile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    .. function: fpi_temps_filereader</span>
+
+<span class="sd">    :synopsis: fpi_temps_filereader is the reader function for the FPI temperature data products files.</span>
+
+<span class="sd">        The temperature data file as published by the FPI data analysis program has 2 segments \:</span>
+
+<span class="sd">        * A header section with instrument parameters and summary statistics for the observation night</span>
+<span class="sd">        * The temperature data products derived from each image in the observation night</span>
+
+<span class="sd">    :Args:</span>
+<span class="sd">    </span>
+<span class="sd">        temps_datfile (str): The full pathname of the temperature data products file to be read</span>
+<span class="sd"> </span>
+<span class="sd">    :Returns: </span>
+<span class="sd">    </span>
+<span class="sd">        temps_data (dict): A dictionary with the contents of the temperature data products file</span>
+
+<span class="sd">    :rtype: </span>
+<span class="sd">    </span>
+<span class="sd">    temps_data : dict[str, dict]</span>
+<span class="sd">    dict of {</span>
+<span class="sd">        &quot;header&quot; : dict,    # information from the header section of the temperature data products file  \n</span>
+<span class="sd">        &quot;data&quot;: dict        # temperature data \n</span>
+<span class="sd">    }</span>
+<span class="sd">    </span>
+<span class="sd">    Example 1: Retrieve tempeture, termperature error estimates and time of measurement for zenith measurements \n</span>
+<span class="sd">    </span>
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        # read in the temperature data products</span>
+<span class="sd">        fpi_temps = fpi_temps_filereader(temps_file)</span>
+<span class="sd">        temps_hdr = fpi_temps[&quot;header&quot;]</span>
+<span class="sd">        temps_data = fpi_temps[&quot;data&quot;]</span>
+<span class="sd">        # Get the indices corresponding to the zenith and 4 directions</span>
+<span class="sd">        zenith_pos = np.where(temps_data[&quot;zn&quot;] == 0)</span>
+<span class="sd">        north_pos = np.where( (temps_data[&quot;zn&quot;] == 45) &amp; (temps_data[&quot;az&quot;] == 0))</span>
+<span class="sd">        south_pos = np.where( (temps_data[&quot;zn&quot;] == 45) &amp; (temps_data[&quot;az&quot;] == 180))</span>
+<span class="sd">        east_pos = np.where( (temps_data[&quot;zn&quot;] == 45) &amp; (temps_data[&quot;az&quot;] == 90))</span>
+<span class="sd">        west_pos = np.where( (temps_data[&quot;zn&quot;] == 45) &amp; (temps_data[&quot;az&quot;] == 270))</span>
+<span class="sd">        # gather the temperature measurements in the zenith direction</span>
+<span class="sd">        tmid_z = temps_data[&quot;ut_mid&quot;][zenith_pos]</span>
+<span class="sd">        temp_z = temps_data[&quot;temp&quot;][zenith_pos]</span>
+<span class="sd">        e_temp_z = temps_data[&quot;e_temp&quot;][zenith_pos]</span>
+<span class="sd">        e_time_z = temps_data[&quot;e_time&quot;][zenith_pos]</span>
+
+<span class="sd">    Example 2: Retrieve tempeture, termperature error estimates and time of measurement for north and south measurements </span>
+<span class="sd">        and merge them as &quot;meridional&quot; measurements \n</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        # read in the temperature data products</span>
+<span class="sd">        fpi_temps = fpi_temps_filereader(temps_file)</span>
+<span class="sd">        temps_data = fpi_temps[&quot;data&quot;]</span>
+<span class="sd">        # Get the indices corresponding to the north and south measurements</span>
+<span class="sd">        north_pos = np.where( (temps_data[&quot;zn&quot;] == 45) &amp; (temps_data[&quot;az&quot;] == 0))</span>
+<span class="sd">        south_pos = np.where( (temps_data[&quot;zn&quot;] == 45) &amp; (temps_data[&quot;az&quot;] == 180))</span>
+<span class="sd">        merid_pos = np.concatenate( (north_pos, south_pos), axis=None )</span>
+<span class="sd">        # Gather the temperature and time measurements in the meridional direction</span>
+<span class="sd">        tmid_m = temps_data[&quot;ut_mid&quot;][merid_pos]</span>
+<span class="sd">        temp_m = temps_data[&quot;temp&quot;][merid_pos]    # temperature in Kelvin</span>
+<span class="sd">        e_temp_m = temps_data[&quot;e_temp&quot;][merid_pos]  # +/- error in temperature</span>
+<span class="sd">        e_time_m = temps_data[&quot;e_time&quot;][merid_pos]  # +/- error in time</span>
+<span class="sd">        # sort them in ascending order of acquisition time</span>
+<span class="sd">        merid_pos_sorted = np.argsort(tmid_m)</span>
+<span class="sd">        tmid_m = tmid_m[merid_pos_sorted]</span>
+<span class="sd">        temp_m = temp_m[merid_pos_sorted]    # temperature in Kelvin</span>
+<span class="sd">        e_temp_m = e_temp_m[merid_pos_sorted]  # +/- error in temperature</span>
+<span class="sd">        e_time_m = e_time_m[merid_pos_sorted]  # +/- error in time</span>
+
+<span class="sd">    Following is the desciption of value of fpi_temps[&quot;header&quot;] \n</span>
+
+<span class="sd">    temps_hdr: dict[str, Any] \n</span>
+<span class="sd">        dict of { \n</span>
+<span class="sd">            &quot;expt&quot; : str, # experiment name \n</span>
+<span class="sd">            &quot;location_name&quot; : str,          # location name \n</span>
+<span class="sd">            &quot;obs_date&quot; : datetime.datetime, # observation date \n</span>
+<span class="sd">            &quot;latitude&quot; : str,               # latitude (positive north, negative south) \n</span>
+<span class="sd">            &quot;longitude&quot; : str,              # longitude (positive east, negative west) \n</span>
+<span class="sd">            &quot;version_num : float,           # software version number (major rev.minor rev) \n</span>
+<span class="sd">            &quot;hdr_lines&quot; : list              # List of strings with the rest of the header lines from the data products files \n</span>
+<span class="sd">        } \n</span>
+
+<span class="sd">    Following is the desciption of value of fpi_temps[&quot;data&quot;] \n</span>
+<span class="sd">    temps_data : dict[str, numpy.ndarray] \n</span>
+<span class="sd">            dict of { \n</span>
+<span class="sd">                &quot;imgno&quot;  : numpy.ndarray of numpy.int32, # image sequence number \n</span>
+<span class="sd">                &quot;ut1&quot;    :  numpy.ndarray of numpy.float32, # acquisition start time, in number of hours since start date \n</span>
+<span class="sd">                &quot;ut2&quot;    :  numpy.ndarray of numpy.float32, # acquisition end time, in number of hours since start date \n</span>
+<span class="sd">                &quot;ut_mid&quot; :  numpy.ndarray of numpy.float32, # timestamp at the middle of acquisition, in number of hours since start date \n</span>
+<span class="sd">                &quot;az&quot; :  numpy.ndarray of numpy.float32, # Azimuth angle of look direction, in degrees \n</span>
+<span class="sd">                &quot;zn&quot; :  numpy.ndarray of numpy.float32, # Zenith angle of look direction, in degrees \n</span>
+<span class="sd">                &quot;signal&quot; :  numpy.ndarray of numpy.float32, # Relative signal strength, in A.D.U / pixel \n</span>
+<span class="sd">                &quot;e_signal&quot; :  numpy.ndarray of numpy.float32, # Relative signal strength error estimate, in A.D.U / pixel \n</span>
+<span class="sd">                &quot;bkgnd&quot; :  numpy.ndarray of numpy.float32, # Relative background , in A.D.U / pixel \n</span>
+<span class="sd">                &quot;e_bkgnd&quot; :  numpy.ndarray of numpy.float32, # Relative background strength error estimate, in A.D.U / pixel \n</span>
+<span class="sd">                &quot;temp&quot; :  numpy.ndarray of numpy.float32, # Temperature, in degrees K \n</span>
+<span class="sd">                &quot;e_temp&quot; :  numpy.ndarray of numpy.float32, # Temperature error estimate, in degrees K \n</span>
+<span class="sd">                &quot;moon&quot;   : numpy.ndarray of numpy.float32, # Percentage of the moon&#39;s synodic cycle \n</span>
+<span class="sd">                &quot;qcode&quot; :  numpy.ndarray of numpy.float32, # Data quality code.  code=0 trustworthy;  code=1 be suspicious;  code=2 be dubious \n</span>
+<span class="sd">            } \n</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">read_float</span><span class="p">(</span><span class="n">string_lit</span><span class="p">):</span>
+        <span class="n">flt_val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;NaN&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+           <span class="n">flt_val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">string_lit</span><span class="p">)</span> 
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">flt_val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;NaN&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">flt_val</span>
+        
+    <span class="k">def</span> <span class="nf">temps_data_iterator</span><span class="p">():</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">temps_datfile</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="c1"># skip lines with just whitespace</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">isspace</span><span class="p">():</span> 
+                <span class="k">continue</span>
+            <span class="n">line_stripped</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">yield</span> <span class="n">line_stripped</span>
+
+    <span class="k">def</span> <span class="nf">read_temp_header_details</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            collect the header lines, which are the first few lines until the line with </span>
+<span class="sd">            the &quot;SS-Analyze&quot; string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">temps_hdr_lines</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">temps_datalines</span> <span class="p">:</span>
+            <span class="n">temps_hdr_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;SS-Analyze&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">)</span> <span class="p">:</span>
+                <span class="k">break</span>
+        <span class="c1"># Get the name of the experiment (Redline, Greenline)</span>
+        <span class="n">expt</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">if</span><span class="p">(</span> <span class="s2">&quot;Red&quot;</span><span class="o">.</span><span class="n">casefold</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="n">temps_hdr_lines</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">casefold</span><span class="p">()</span> <span class="p">):</span>
+            <span class="n">loc_name_end_idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">temps_hdr_lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">casefold</span><span class="p">())</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;Red&quot;</span><span class="o">.</span><span class="n">casefold</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">expt</span> <span class="o">=</span> <span class="s2">&quot;RedLine&quot;</span>
+        <span class="k">if</span><span class="p">(</span> <span class="s2">&quot;Green&quot;</span><span class="o">.</span><span class="n">casefold</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="n">temps_hdr_lines</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">casefold</span><span class="p">()</span> <span class="p">):</span>
+            <span class="n">loc_name_end_idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">temps_hdr_lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">casefold</span><span class="p">())</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;Green&quot;</span><span class="o">.</span><span class="n">casefold</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">expt</span> <span class="o">=</span> <span class="s2">&quot;GreenLine&quot;</span>
+
+        <span class="c1"># Get the location name (which is the entire string in line 0 preceding the experiment label)</span>
+        <span class="n">location_name</span> <span class="o">=</span> <span class="n">temps_hdr_lines</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="n">loc_name_end_idx</span><span class="p">]</span>
+
+        <span class="c1"># Get the start date of the observation. Since the year is denoted by two digits, add 2000</span>
+        <span class="n">obs_date_yy</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">temps_hdr_lines</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">])</span>
+        <span class="n">obs_date_yy</span> <span class="o">+=</span> <span class="mi">2000</span>
+        <span class="n">obs_date_mon</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">temps_hdr_lines</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">4</span><span class="p">:</span><span class="mi">6</span><span class="p">])</span>
+        <span class="n">obs_date_day</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">temps_hdr_lines</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">6</span><span class="p">:</span><span class="mi">8</span><span class="p">])</span>
+        <span class="n">obs_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="n">obs_date_yy</span><span class="p">,</span> <span class="n">obs_date_mon</span><span class="p">,</span> <span class="n">obs_date_day</span><span class="p">)</span>
+
+        <span class="c1"># get the version number</span>
+        <span class="n">versionNumberStr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">temps_hdr_lines</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">versionNumber</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">versionNumberStr</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+        <span class="n">latitude</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;NaN&#39;</span><span class="p">)</span>
+        <span class="n">longitude</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;NaN&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">hdr_line</span> <span class="ow">in</span> <span class="n">temps_hdr_lines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s2">&quot;latitude&quot;</span><span class="o">.</span><span class="n">casefold</span><span class="p">()</span> <span class="ow">in</span> <span class="n">hdr_line</span><span class="o">.</span><span class="n">casefold</span><span class="p">()):</span>
+                <span class="c1"># split the header line with lat and lon by delimiters, then remove </span>
+                <span class="c1"># empty strings, and then read the lat and lon from the list entities</span>
+                <span class="n">lat_lon_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;[ \,]&#39;</span><span class="p">,</span> <span class="n">hdr_line</span><span class="p">)))</span>
+                <span class="n">latitude</span> <span class="o">=</span> <span class="n">lat_lon_list</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">longitude</span> <span class="o">=</span> <span class="n">lat_lon_list</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+
+        <span class="n">temps_hdr</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;expt&quot;</span> <span class="p">:</span> <span class="n">expt</span><span class="p">,</span>
+            <span class="s2">&quot;location_name&quot;</span> <span class="p">:</span><span class="n">location_name</span><span class="p">,</span>
+            <span class="s2">&quot;obs_date&quot;</span> <span class="p">:</span> <span class="n">obs_date</span><span class="p">,</span>
+            <span class="s2">&quot;latitude&quot;</span> <span class="p">:</span> <span class="n">latitude</span><span class="p">,</span>
+            <span class="s2">&quot;longitude&quot;</span> <span class="p">:</span> <span class="n">longitude</span><span class="p">,</span>
+            <span class="s2">&quot;version_num&quot;</span> <span class="p">:</span> <span class="n">versionNumber</span><span class="p">,</span>
+            <span class="s2">&quot;hdr_lines&quot;</span> <span class="p">:</span> <span class="n">temps_hdr_lines</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">temps_hdr</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    read_temps_detail reads the temperature data products in each </span>
+<span class="sd">    the 5 look directions, and returns a named numpy structed array with the data product details</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">read_temps_detail</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Skip the first couple of lines. The first line has the column names, and the </span>
+<span class="sd">        code will generate column names that correspond to the ones present in the .dat file.</span>
+<span class="sd">        The second line has the units. skip this because the units are fixed for the columns.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">skip_line</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">temps_datalines</span><span class="p">)</span>
+        <span class="n">skip_line</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">temps_datalines</span><span class="p">)</span>
+        <span class="c1"># allocate structured array for each column in the table with temperature and errors</span>
+        <span class="n">temps_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="mi">0</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="p">{</span>
+                <span class="s1">&#39;names&#39;</span><span class="p">:</span>
+                <span class="c1"># image tmid Etime   AZ    ZN   signal Esignal   bkgnd  Ebkgnd   temp    Etemp  moon code</span>
+                <span class="p">(</span><span class="s1">&#39;imgno&#39;</span><span class="p">,</span> <span class="s1">&#39;ut_mid&#39;</span><span class="p">,</span> <span class="s1">&#39;e_time&#39;</span><span class="p">,</span> <span class="s1">&#39;az&#39;</span><span class="p">,</span> <span class="s1">&#39;zn&#39;</span><span class="p">,</span> <span class="s1">&#39;signal&#39;</span><span class="p">,</span> <span class="s1">&#39;e_signal&#39;</span><span class="p">,</span> <span class="s1">&#39;bkgnd&#39;</span><span class="p">,</span> <span class="s1">&#39;e_bkgnd&#39;</span><span class="p">,</span> <span class="s1">&#39;temp&#39;</span><span class="p">,</span> <span class="s1">&#39;e_temp&#39;</span><span class="p">,</span> <span class="s1">&#39;moon&#39;</span><span class="p">,</span> <span class="s1">&#39;qcode&#39;</span><span class="p">),</span>
+                <span class="s1">&#39;formats&#39;</span><span class="p">:(</span><span class="s1">&#39;i4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span><span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;i4&#39;</span><span class="p">)})</span>
+        <span class="c1">#  assemble temperature details</span>
+        <span class="n">temps_record</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">temps_datalines</span><span class="p">)</span>
+        <span class="k">while</span><span class="p">(</span> <span class="ow">not</span><span class="p">(</span><span class="s1">&#39;Raw data&#39;</span> <span class="ow">in</span> <span class="n">temps_record</span><span class="p">)):</span> 
+            <span class="n">temps_rec_cols</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; +&#39;</span><span class="p">,</span> <span class="n">temps_record</span><span class="p">)</span>
+            <span class="n">imgno</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">temps_rec_cols</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">ut_mid</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">temps_rec_cols</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">e_time</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">temps_rec_cols</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">az</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">temps_rec_cols</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">zn</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">temps_rec_cols</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+            <span class="n">signal</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">temps_rec_cols</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+            <span class="n">e_signal</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">temps_rec_cols</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+            <span class="n">bkgnd</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">temps_rec_cols</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span>
+            <span class="n">e_bkgnd</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">temps_rec_cols</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">temps_rec_cols</span><span class="p">[</span><span class="mi">9</span><span class="p">])</span>
+            <span class="n">e_temp</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">temps_rec_cols</span><span class="p">[</span><span class="mi">10</span><span class="p">])</span>
+            <span class="n">moon</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">temps_rec_cols</span><span class="p">[</span><span class="mi">11</span><span class="p">])</span>
+            <span class="n">qcode</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">temps_rec_cols</span><span class="p">[</span><span class="mi">12</span><span class="p">])</span>
+            <span class="c1"># now populate the array with the values just read</span>
+            <span class="n">temps_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">temps_data</span><span class="p">,</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">imgno</span><span class="p">,</span> <span class="n">ut_mid</span><span class="p">,</span> <span class="n">e_time</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">zn</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">e_signal</span><span class="p">,</span> <span class="n">bkgnd</span><span class="p">,</span> <span class="n">e_bkgnd</span><span class="p">,</span> <span class="n">temp</span><span class="p">,</span> <span class="n">e_temp</span><span class="p">,</span> <span class="n">moon</span><span class="p">,</span> <span class="n">qcode</span><span class="p">)],</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">temps_data</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+            <span class="n">temps_record</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">temps_datalines</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">temps_data</span>
+                       
+    <span class="n">temps_datalines</span> <span class="o">=</span> <span class="n">temps_data_iterator</span><span class="p">()</span>
+    <span class="n">temps_hdr</span> <span class="o">=</span> <span class="n">read_temp_header_details</span><span class="p">()</span>
+    <span class="n">temps_data</span> <span class="o">=</span> <span class="n">read_temps_detail</span><span class="p">()</span>
+   <span class="c1"># convert the temperature data products file contents to a dictionary</span>
+    <span class="n">temps_data_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">temps_data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+        <span class="n">temps_data_dict</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">temps_data</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span>
+
+    <span class="n">fpi_temps</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;header&quot;</span> <span class="p">:</span> <span class="n">temps_hdr</span><span class="p">,</span>
+        <span class="s2">&quot;data&quot;</span> <span class="p">:</span> <span class="n">temps_data_dict</span> <span class="p">}</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">fpi_temps</span><span class="p">)</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">argument_parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+    <span class="n">argument_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;temps_datfile&quot;</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The full path of the *temps.dat file to be parsed.&quot;</span>
+    <span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">argument_parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">fpi_temps</span> <span class="o">=</span> <span class="n">fpi_temps_filereader</span><span class="p">(</span> <span class="n">args</span><span class="o">.</span><span class="n">temps_datfile</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;temps header data:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="n">fpi_temps</span><span class="p">[</span><span class="s2">&quot;header&quot;</span><span class="p">])</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Temperature data products:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="n">fpi_temps</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">])</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2022, Sudha Kapali
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

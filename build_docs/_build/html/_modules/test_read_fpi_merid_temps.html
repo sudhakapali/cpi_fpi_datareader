@@ -1,0 +1,253 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="Python" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="Python" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>test_read_fpi_merid_temps &mdash; cpi_fpi_dataproducts_reader 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> cpi_fpi_dataproducts_reader
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">cpi_fpi_datareader</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">cpi_fpi_dataproducts_reader</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>test_read_fpi_merid_temps</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for test_read_fpi_merid_temps</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plot</span>
+<span class="kn">from</span> <span class="nn">read_fpi_temps</span> <span class="kn">import</span> <span class="n">fpi_temps_filereader</span>
+
+<div class="viewcode-block" id="get_merid_temps"><a class="viewcode-back" href="../test_read_fpi_merid_temps.html#test_read_fpi_merid_temps.get_merid_temps">[docs]</a><span class="k">def</span> <span class="nf">get_merid_temps</span><span class="p">(</span><span class="n">temps_file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :Synopsis: </span>
+
+<span class="sd">        Function get_merid_temps is an example function that </span>
+<span class="sd">        </span>
+<span class="sd">        a) reads the FPI thermospheric temperature data products file (*temps.dat) and </span>
+<span class="sd">        b) merges the temperature and time values in the North and South directions.</span>
+<span class="sd">           The output values are sorted in time.</span>
+
+<span class="sd">    :Args:</span>
+<span class="sd">    </span>
+<span class="sd">        temps_datfile (str): The full pathname of the temperature data products file to be read</span>
+<span class="sd"> </span>
+<span class="sd">    :returns: </span>
+<span class="sd">    </span>
+<span class="sd">    * tmid_m : The ut_mid of the meridional measurements,</span>
+<span class="sd">    * e_time_m :  The error estimate in ut_mid of the meridional measurements,</span>
+<span class="sd">    * temp_m : The temperature measurement of meridional measurements</span>
+<span class="sd">    * e_temp_m : The error in temperature of the meridional measurements</span>
+
+<span class="sd">    :rtype: </span>
+
+<span class="sd">    * tmid_m : numpy.ndarray</span>
+<span class="sd">    * e_time_m :  numpy.ndarray</span>
+<span class="sd">    * temp_m : numpy.ndarray</span>
+<span class="sd">    * e_temp_m : numpy.ndarray</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># read in the temperature data products</span>
+    <span class="n">fpi_temps</span> <span class="o">=</span> <span class="n">fpi_temps_filereader</span><span class="p">(</span><span class="n">temps_file</span><span class="p">)</span>
+    <span class="n">temps_data</span> <span class="o">=</span> <span class="n">fpi_temps</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span>
+    <span class="c1"># Get the indices corresponding to the north and south measurements</span>
+    <span class="n">north_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span> <span class="p">(</span><span class="n">temps_data</span><span class="p">[</span><span class="s2">&quot;zn&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">45</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">temps_data</span><span class="p">[</span><span class="s2">&quot;az&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="n">south_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span> <span class="p">(</span><span class="n">temps_data</span><span class="p">[</span><span class="s2">&quot;zn&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">45</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">temps_data</span><span class="p">[</span><span class="s2">&quot;az&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">180</span><span class="p">))</span>
+    <span class="n">merid_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span> <span class="p">(</span><span class="n">north_pos</span><span class="p">,</span> <span class="n">south_pos</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span> <span class="p">)</span>
+    <span class="c1"># Gather the temperature and time measurements in the meridional direction</span>
+    <span class="n">tmid_m</span> <span class="o">=</span> <span class="n">temps_data</span><span class="p">[</span><span class="s2">&quot;ut_mid&quot;</span><span class="p">][</span><span class="n">merid_pos</span><span class="p">]</span>
+    <span class="n">temp_m</span> <span class="o">=</span> <span class="n">temps_data</span><span class="p">[</span><span class="s2">&quot;temp&quot;</span><span class="p">][</span><span class="n">merid_pos</span><span class="p">]</span>    <span class="c1"># temperature in Kelvin</span>
+    <span class="n">e_temp_m</span> <span class="o">=</span> <span class="n">temps_data</span><span class="p">[</span><span class="s2">&quot;e_temp&quot;</span><span class="p">][</span><span class="n">merid_pos</span><span class="p">]</span>  <span class="c1"># +/- error in temperature</span>
+    <span class="n">e_time_m</span> <span class="o">=</span> <span class="n">temps_data</span><span class="p">[</span><span class="s2">&quot;e_time&quot;</span><span class="p">][</span><span class="n">merid_pos</span><span class="p">]</span>  <span class="c1"># +/- error in time</span>
+    <span class="c1"># sort them in ascending order of acquisition time</span>
+    <span class="n">merid_pos_sorted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">tmid_m</span><span class="p">)</span>
+    <span class="n">tmid_m</span> <span class="o">=</span> <span class="n">tmid_m</span><span class="p">[</span><span class="n">merid_pos_sorted</span><span class="p">]</span>
+    <span class="n">temp_m</span> <span class="o">=</span> <span class="n">temp_m</span><span class="p">[</span><span class="n">merid_pos_sorted</span><span class="p">]</span>    <span class="c1"># temperature in Kelvin</span>
+    <span class="n">e_temp_m</span> <span class="o">=</span> <span class="n">e_temp_m</span><span class="p">[</span><span class="n">merid_pos_sorted</span><span class="p">]</span>  <span class="c1"># +/- error in temperature</span>
+    <span class="n">e_time_m</span> <span class="o">=</span> <span class="n">e_time_m</span><span class="p">[</span><span class="n">merid_pos_sorted</span><span class="p">]</span>  <span class="c1"># +/- error in time</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">tmid_m</span><span class="p">,</span> <span class="n">e_time_m</span><span class="p">,</span> <span class="n">temp_m</span><span class="p">,</span> <span class="n">e_temp_m</span><span class="p">)</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="c1"># datadir is the directory where the *_temps.dat files are located.</span>
+    <span class="n">datadir</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="o">+</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span> <span class="o">+</span> <span class="s2">&quot;data&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">sep</span> <span class="o">+</span> <span class="s2">&quot;*_temps.dat&quot;</span>
+    <span class="n">plotdir</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">sep</span> <span class="o">+</span> <span class="s2">&quot;output&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">sep</span>
+    <span class="n">temps_data_files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">datadir</span><span class="p">)</span> 
+    <span class="k">for</span> <span class="n">temps_file</span> <span class="ow">in</span> <span class="n">temps_data_files</span><span class="p">:</span>
+        <span class="n">tmid_m</span><span class="p">,</span> <span class="n">e_time_m</span><span class="p">,</span> <span class="n">temp_m</span><span class="p">,</span> <span class="n">e_temp_m</span> <span class="o">=</span> \
+            <span class="n">get_merid_temps</span><span class="p">(</span><span class="n">temps_file</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="n">tmid_m</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="n">temp_m</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2022, Sudha Kapali
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
