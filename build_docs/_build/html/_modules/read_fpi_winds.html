@@ -1,0 +1,585 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="Python" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="Python" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>read_fpi_winds &mdash; cpi_fpi_dataproducts_reader 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> cpi_fpi_dataproducts_reader
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">cpi_fpi_datareader</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">cpi_fpi_dataproducts_reader</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>read_fpi_winds</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for read_fpi_winds</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="viewcode-block" id="fpi_winds_filereader"><a class="viewcode-back" href="../read_fpi_winds.html#read_fpi_winds.fpi_winds_filereader">[docs]</a><span class="k">def</span> <span class="nf">fpi_winds_filereader</span><span class="p">(</span><span class="n">winds_datfile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;   </span>
+<span class="sd">    .. function: fpi_winds_filereader</span>
+
+<span class="sd">    :synopsis: fpi_winds_filereader is the reader function for the FPI Winds data products files</span>
+<span class="sd">   </span>
+<span class="sd">    The winds data file as published by the FPI data analysis program has 4 segments</span>
+
+<span class="sd">    * A header section with instrument parameters and summary statistics for the observation night</span>
+<span class="sd">    * Meridional winds</span>
+<span class="sd">    * Zonal winds</span>
+<span class="sd">    * The relative vertical winds</span>
+
+<span class="sd">    :Args:</span>
+<span class="sd">    </span>
+<span class="sd">        winds_datfile (str): The full pathname of the winds data products file to be read</span>
+
+<span class="sd">    :return: A dictionary with the contents of the winds data products file.</span>
+
+<span class="sd">    :rtype: dict</span>
+
+<span class="sd">    winds_data : dict[str, dict]</span>
+<span class="sd">    dict of {</span>
+<span class="sd">        &quot;header&quot; : dict,    # information from the header section of the data products file  \n</span>
+<span class="sd">        &quot;meridional&quot;: dict, # meridional winds data \n</span>
+<span class="sd">        &quot;zonal&quot;: dict,      # zonal winds data \n</span>
+<span class="sd">        &quot;vertical&quot;: dict    # meridional winds data \n</span>
+<span class="sd">    }</span>
+<span class="sd">    </span>
+<span class="sd">        Example 1:  Retrieve meridional winds, meridional winds error estimates and UT time for \n</span>
+<span class="sd">        each meridional measurement. \n</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            fpi_winds = fpi_winds_filereader(winds_file) </span>
+<span class="sd">            winds_hdr = fpi_winds[&quot;header&quot;]              </span>
+<span class="sd">            merid_winds = fpi_winds[&quot;meridional&quot;]</span>
+<span class="sd">            # extract meridional wind velocity</span>
+<span class="sd">            m_wind = merid_winds[&quot;wind&quot;]</span>
+<span class="sd">            m_wind_err = merid_winds[&quot;wind_err&quot;]</span>
+<span class="sd">            # extract UT time of the meridional wind measurement</span>
+<span class="sd">            m_ut_time = merid_winds[&quot;ut_mid&quot;]</span>
+<span class="sd">      </span>
+<span class="sd">        Example 2:  Retrieve zonal winds, zonal winds error estimates and UT time for \n</span>
+<span class="sd">        each zonal measurement. \n</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            fpi_winds = fpi_winds_filereader(winds_file) </span>
+<span class="sd">            zonal_winds = fpi_winds[&quot;zonal&quot;]</span>
+<span class="sd">            # extract zonal wind velocity</span>
+<span class="sd">            z_wind = zonal_winds[&quot;wind&quot;]</span>
+<span class="sd">            z_wind_err = zonal_winds[&quot;wind_err&quot;]</span>
+<span class="sd">            # extract UT time of the zonal wind measurement</span>
+<span class="sd">            z_ut_time = zonal_winds[&quot;ut_mid&quot;]</span>
+
+<span class="sd">        :Type Description for fpi_winds[&quot;header&quot;]: </span>
+
+<span class="sd">        winds_hdr: dict[str, Any] \n</span>
+<span class="sd">            dict of { \n</span>
+<span class="sd">                &quot;expt&quot; : str, # experiment name \n</span>
+<span class="sd">                &quot;location_name&quot; : str,          # location name \n</span>
+<span class="sd">                &quot;obs_date&quot; : datetime.datetime, # observation date \n</span>
+<span class="sd">                &quot;latitude&quot; : str,               # latitude (positive north, negative south) \n</span>
+<span class="sd">                &quot;longitude&quot; : str,              # longitude (positive east, negative west) \n</span>
+<span class="sd">                &quot;version_num : float,           # software version number (major rev.minor rev) \n</span>
+<span class="sd">                &quot;hdr_lines&quot; : list,             # List of strings with the rest of the header lines from the data products files \n</span>
+<span class="sd">                &quot;hmax_n&quot; : float,               # Assumed height of HMAX, in kms, in the north direction \n</span>
+<span class="sd">                &quot;hmax_s&quot; : float,               # Assumed height of HMAX, in kms, in the south direction \n</span>
+<span class="sd">                &quot;hmax_e&quot; : float,               # Assumed height of HMAX, in kms, in the east direction \n</span>
+<span class="sd">                &quot;hmax_w&quot; : float,               # Assumed height of HMAX, in kms, in the west direction \n</span>
+<span class="sd">                &quot;emission_layer_n&quot; : float,     # Assumed height of the emission layer, in kms, in the north direction \n</span>
+<span class="sd">                &quot;emission_layer_s&quot; : float,     # Assumed height of the emission layer, in kms, in the south direction \n</span>
+<span class="sd">                &quot;emission_layer_e&quot; : float,     # Assumed height of the emission layer, in kms, in the east direction \n</span>
+<span class="sd">                &quot;emission_layer_w&quot; : float      # Assumed height of the emission layer, in kms, in the west direction \n</span>
+<span class="sd">            } \n</span>
+
+<span class="sd">        :Type Description for fpi_winds[&quot;meridional&quot;]: </span>
+
+<span class="sd">        merid_winds : dict[str, numpy.ndarray] \n</span>
+<span class="sd">            dict of { \n</span>
+<span class="sd">                &quot;imgno&quot;  : numpy.ndarray of numpy.int32, # image sequence number \n</span>
+<span class="sd">                &quot;ut1&quot;    :  numpy.ndarray of numpy.float32, # acquisition start time, in number of hours since start date \n</span>
+<span class="sd">                &quot;ut2&quot;    :  numpy.ndarray of numpy.float32, # acquisition end time, in number of hours since start date \n</span>
+<span class="sd">                &quot;ut_mid&quot; :  numpy.ndarray of numpy.float32, # timestamp at the middle of acquisition, in number of hours since start date \n</span>
+<span class="sd">                &quot;lookdir&quot; :  numpy.ndarray of numpy.str\_, # Look direction. &quot;North&quot; or &quot;South&quot; \n</span>
+<span class="sd">                &quot;los&quot; :  numpy.ndarray of numpy.float32, # Line of sight wind measurement in m/s \n</span>
+<span class="sd">                &quot;los_err&quot; :  numpy.ndarray of numpy.float32, # Line of sight wind error estimate in m/s \n</span>
+<span class="sd">                &quot;ilos&quot; :  numpy.ndarray of numpy.float32, # Interpolated Line of sight wind measurement in the opposite look direction, in m/s \n</span>
+<span class="sd">                &quot;ilos_err&quot; :  numpy.ndarray of numpy.float32, # Line of sight wind error estimate of the interpolated wind measurement, in m/s \n</span>
+<span class="sd">                &quot;wind&quot; :  numpy.ndarray of numpy.float32, # meridional wind measurement, in m/s \n</span>
+<span class="sd">                &quot;wind_err&quot; :  numpy.ndarray of numpy.float32, # Meridional wind error estimate, in m/s \n</span>
+<span class="sd">                &quot;gradient&quot; :  numpy.ndarray of numpy.float32, # Wind gradient, m/s per 500 kms  \n</span>
+<span class="sd">                &quot;gradient_err&quot; :  numpy.ndarray of numpy.float32, # Wind gradient error estimate, in m/s per 500 kms \n</span>
+<span class="sd">                &quot;wind_desc&quot; :  numpy.ndarray of numpy.str\_, # Description of the wind - Empty string, &quot;converging&quot;, &quot;diverging&quot;  \n</span>
+<span class="sd">                &quot;qcode&quot; :  numpy.ndarray of numpy.float32, # Data quality code.  code=0 trustworthy;  code=1 be suspicious;  code=2 be dubious \n</span>
+<span class="sd">            } \n</span>
+
+<span class="sd">        :Type Description for fpi_winds[&quot;zonal&quot;]: </span>
+
+<span class="sd">        zonal_winds : dict[str, numpy.ndarray] \n</span>
+<span class="sd">            dict of { \n</span>
+<span class="sd">                &quot;imgno&quot;  : numpy.ndarray of numpy.int32, # image sequence number \n</span>
+<span class="sd">                &quot;ut1&quot;    :  numpy.ndarray of numpy.float32, # acquisition start time, in number of hours since start date \n</span>
+<span class="sd">                &quot;ut2&quot;    :  numpy.ndarray of numpy.float32, # acquisition end time, in number of hours since start date \n</span>
+<span class="sd">                &quot;ut_mid&quot; :  numpy.ndarray of numpy.float32, # timestamp at the middle of acquisition, in number of hours since start date \n</span>
+<span class="sd">                &quot;lookdir&quot; :  numpy.ndarray of numpy.str\_, # Look direction. &quot;East&quot; or &quot;West&quot; \n</span>
+<span class="sd">                &quot;los&quot; :  numpy.ndarray of numpy.float32, # Line of sight wind measurement in m/s \n</span>
+<span class="sd">                &quot;los_err&quot; :  numpy.ndarray of numpy.float32, # Line of sight wind error estimate in m/s \n</span>
+<span class="sd">                &quot;ilos&quot; :  numpy.ndarray of numpy.float32, # Interpolated Line of sight wind measurement in the opposite look direction, in m/s \n</span>
+<span class="sd">                &quot;ilos_err&quot; :  numpy.ndarray of numpy.float32, # Line of sight wind error estimate of the interpolated wind measurement, in m/s \n</span>
+<span class="sd">                &quot;wind&quot; :  numpy.ndarray of numpy.float32, # Zonal wind measurement, in m/s \n</span>
+<span class="sd">                &quot;wind_err&quot; :  numpy.ndarray of numpy.float32, # Zonal wind error estimate, in m/s \n</span>
+<span class="sd">                &quot;gradient&quot; :  numpy.ndarray of numpy.float32, # Wind gradient, m/s per 500 kms  \n</span>
+<span class="sd">                &quot;gradient_err&quot; :  numpy.ndarray of numpy.float32, # Wind gradient error estimate, in m/s per 500 kms \n</span>
+<span class="sd">                &quot;wind_desc&quot; :  numpy.ndarray of numpy.str\_, # Description of the wind - Empty string, &quot;converging&quot;, &quot;diverging&quot;  \n</span>
+<span class="sd">                &quot;qcode&quot; :  numpy.ndarray of numpy.float32, # Data quality code.  code=0 trustworthy;  code=1 be suspicious;  code=2 be dubious \n</span>
+<span class="sd">            } \n</span>
+
+<span class="sd">        :Type Description for fpi_winds[&quot;vertical&quot;]: </span>
+
+<span class="sd">        vert_winds : dict[str, numpy.ndarray] \n</span>
+<span class="sd">            dict of { \n</span>
+<span class="sd">                &quot;imgno&quot;  : numpy.ndarray of numpy.int32, # image sequence number \n</span>
+<span class="sd">                &quot;ut1&quot;    :  numpy.ndarray of numpy.float32, # acquisition start time, in number of hours since start date \n</span>
+<span class="sd">                &quot;ut2&quot;    :  numpy.ndarray of numpy.float32, # acquisition end time, in number of hours since start date \n</span>
+<span class="sd">                &quot;ut_mid&quot; :  numpy.ndarray of numpy.float32, # timestamp at the middle of acquisition, in number of hours since start date \n</span>
+<span class="sd">                &quot;vert&quot; :  numpy.ndarray of numpy.float32, # Relative vertical wind measurement, in m/s \n</span>
+<span class="sd">                &quot;vert_err&quot; :  numpy.ndarray of numpy.float32, # Relative vertical wind error estimate, in m/s \n</span>
+<span class="sd">                &quot;qcode&quot; :  numpy.ndarray of numpy.float32, # Data quality code.  code=0 trustworthy;  code=1 be suspicious;  code=2 be dubious \n</span>
+<span class="sd">            } \n</span>
+<span class="sd">    &quot;&quot;&quot;</span> 
+    <span class="k">def</span> <span class="nf">read_float</span><span class="p">(</span><span class="n">string_lit</span><span class="p">):</span>
+        <span class="n">flt_val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;NaN&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+           <span class="n">flt_val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">string_lit</span><span class="p">)</span> 
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">flt_val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;NaN&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">flt_val</span>
+
+    <span class="k">def</span> <span class="nf">winds_data_iterator</span><span class="p">():</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">winds_datfile</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="c1"># skip lines with just whitespace</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">isspace</span><span class="p">():</span> 
+                <span class="k">continue</span>
+            <span class="n">line_stripped</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">yield</span> <span class="n">line_stripped</span>
+
+    <span class="k">def</span> <span class="nf">read_winds_header_details</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            collect the header lines, which are the first few lines until the line with </span>
+<span class="sd">            the &quot;SS-Analyze&quot; string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">winds_hdr_lines</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">winds_datalines</span> <span class="p">:</span>
+            <span class="n">winds_hdr_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;SS-Analyze&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">)</span> <span class="p">:</span>
+                <span class="k">break</span>
+        
+        <span class="c1"># Get the name of the experiment (Redline, Greenline)</span>
+        <span class="n">expt</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">if</span><span class="p">(</span> <span class="s2">&quot;Red&quot;</span><span class="o">.</span><span class="n">casefold</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="n">winds_hdr_lines</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">casefold</span><span class="p">()</span> <span class="p">):</span>
+            <span class="n">loc_name_end_idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">winds_hdr_lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">casefold</span><span class="p">())</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;Red&quot;</span><span class="o">.</span><span class="n">casefold</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">expt</span> <span class="o">=</span> <span class="s2">&quot;RedLine&quot;</span>
+        <span class="k">if</span><span class="p">(</span> <span class="s2">&quot;Green&quot;</span><span class="o">.</span><span class="n">casefold</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="n">winds_hdr_lines</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">casefold</span><span class="p">()</span> <span class="p">):</span>
+            <span class="n">loc_name_end_idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">winds_hdr_lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">casefold</span><span class="p">())</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;Green&quot;</span><span class="o">.</span><span class="n">casefold</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">expt</span> <span class="o">=</span> <span class="s2">&quot;GreenLine&quot;</span>
+
+        <span class="c1"># Get the location name (which is the entire string in line 0 preceding the experiment label)</span>
+        <span class="n">location_name</span> <span class="o">=</span> <span class="n">winds_hdr_lines</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="n">loc_name_end_idx</span><span class="p">]</span>
+
+        <span class="c1"># Get the start date of the observation. Since the year is denoted by two digits, add 2000</span>
+        <span class="n">obs_date_yy</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">winds_hdr_lines</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">])</span>
+        <span class="n">obs_date_yy</span> <span class="o">+=</span> <span class="mi">2000</span>
+        <span class="n">obs_date_mon</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">winds_hdr_lines</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">4</span><span class="p">:</span><span class="mi">6</span><span class="p">])</span>
+        <span class="n">obs_date_day</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">winds_hdr_lines</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">6</span><span class="p">:</span><span class="mi">8</span><span class="p">])</span>
+        <span class="n">obs_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="n">obs_date_yy</span><span class="p">,</span> <span class="n">obs_date_mon</span><span class="p">,</span> <span class="n">obs_date_day</span><span class="p">)</span>
+
+        <span class="c1"># get the version number</span>
+        <span class="n">versionNumberStr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">winds_hdr_lines</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">versionNumber</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">versionNumberStr</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+        <span class="n">latitude</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;NaN&#39;</span><span class="p">)</span>
+        <span class="n">longitude</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;NaN&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">hdr_line</span> <span class="ow">in</span> <span class="n">winds_hdr_lines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s2">&quot;latitude&quot;</span><span class="o">.</span><span class="n">casefold</span><span class="p">()</span> <span class="ow">in</span> <span class="n">hdr_line</span><span class="o">.</span><span class="n">casefold</span><span class="p">()):</span>
+                <span class="c1"># split the header line with lat and lon by delimiters, then remove </span>
+                <span class="c1"># empty strings, and then read the lat and lon from the list entities</span>
+                <span class="n">lat_lon_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;[ \,]&#39;</span><span class="p">,</span> <span class="n">hdr_line</span><span class="p">)))</span>
+                <span class="n">latitude</span> <span class="o">=</span> <span class="n">lat_lon_list</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">longitude</span> <span class="o">=</span> <span class="n">lat_lon_list</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+        <span class="n">winds_hdr</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;expt&quot;</span> <span class="p">:</span> <span class="n">expt</span><span class="p">,</span>
+            <span class="s2">&quot;location_name&quot;</span> <span class="p">:</span><span class="n">location_name</span><span class="p">,</span>
+            <span class="s2">&quot;obs_date&quot;</span> <span class="p">:</span> <span class="n">obs_date</span><span class="p">,</span>
+            <span class="s2">&quot;latitude&quot;</span> <span class="p">:</span> <span class="n">latitude</span><span class="p">,</span>
+            <span class="s2">&quot;longitude&quot;</span> <span class="p">:</span> <span class="n">longitude</span><span class="p">,</span>
+            <span class="s2">&quot;version_num&quot;</span> <span class="p">:</span> <span class="n">versionNumber</span><span class="p">,</span>
+            <span class="s2">&quot;hdr_lines&quot;</span> <span class="p">:</span> <span class="n">winds_hdr_lines</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">winds_hdr</span>
+
+    <span class="k">def</span> <span class="nf">read_winds_cardinal_summary</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">winds_datalines</span><span class="p">)</span>
+            <span class="c1"># tokenize the line using spaces and the &quot;=&quot; character</span>
+            <span class="n">segments</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;[ =]+&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+            <span class="n">n_items</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">segments</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">lookdir</span> <span class="o">=</span> <span class="n">segments</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">hmax</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">segments</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+            <span class="n">emission_layer</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">segments</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span>
+        <span class="k">except</span> <span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unexpected error:&quot;</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">return</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">n_items</span><span class="p">,</span> <span class="n">lookdir</span><span class="p">,</span> <span class="n">hmax</span><span class="p">,</span> <span class="n">emission_layer</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">read_vert_winds_summary</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">winds_datalines</span><span class="p">)</span>
+            <span class="c1"># tokenize the line using spaces </span>
+            <span class="n">segments</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; +&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+            <span class="n">n_items</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">segments</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">except</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">n_items</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    read_winds_cardinal_detail reads the horizontal (cosine-component) of los winds </span>
+<span class="sd">    in each of the 4 cardinal directions, and report meriodional and zonal winds</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">read_winds_cardinal_detail</span><span class="p">():</span>
+        <span class="c1"># Read the first line, which is the summary info for the winds in each direction</span>
+        <span class="c1"># Among other details, it contains the number of wind vectors measured in this </span>
+        <span class="c1"># direction.</span>
+        <span class="c1"># This line also has the assumed hmax and emission layer.</span>
+        <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">nvectors</span><span class="p">,</span> <span class="n">lookdir</span><span class="p">,</span> <span class="n">hmax</span><span class="p">,</span> <span class="n">emission_layer</span><span class="p">)</span> <span class="o">=</span> <span class="n">read_winds_cardinal_summary</span><span class="p">()</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Skip the next couple of lines. The first line has the column names, and the </span>
+<span class="sd">        code will generate column names that correspond to the ones present in the .dat file.</span>
+<span class="sd">        The second line has the units. skip this because the units are fixed for the columns.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">skip_line</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">winds_datalines</span><span class="p">)</span>
+        <span class="n">skip_line</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">winds_datalines</span><span class="p">)</span>
+        <span class="c1"># allocate structured array for each column in the table with winds and errors</span>
+        <span class="n">wind_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="n">nvectors</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="p">{</span>
+                <span class="s1">&#39;names&#39;</span><span class="p">:</span>
+                <span class="p">[</span><span class="s1">&#39;imgno&#39;</span><span class="p">,</span> <span class="s1">&#39;ut1&#39;</span><span class="p">,</span> <span class="s1">&#39;ut2&#39;</span><span class="p">,</span> <span class="s1">&#39;ut_mid&#39;</span><span class="p">,</span> <span class="s1">&#39;lookdir&#39;</span><span class="p">,</span> <span class="s1">&#39;los&#39;</span><span class="p">,</span> <span class="s1">&#39;los_err&#39;</span><span class="p">,</span> <span class="s1">&#39;ilos&#39;</span><span class="p">,</span> <span class="s1">&#39;ilos_err&#39;</span><span class="p">,</span> <span class="s1">&#39;wind&#39;</span><span class="p">,</span> <span class="s1">&#39;wind_err&#39;</span><span class="p">,</span> <span class="s1">&#39;gradient&#39;</span><span class="p">,</span> <span class="s1">&#39;gradient_err&#39;</span><span class="p">,</span> <span class="s1">&#39;wind_desc&#39;</span><span class="p">,</span> <span class="s1">&#39;qcode&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;formats&#39;</span><span class="p">:[</span><span class="s1">&#39;i4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;U10&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span><span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;U10&#39;</span><span class="p">,</span> <span class="s1">&#39;i4&#39;</span><span class="p">]})</span>
+ 
+        <span class="c1">#  assemble wind vector details</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nvectors</span><span class="p">)</span> <span class="p">:</span>
+            <span class="n">wind_record</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">winds_datalines</span><span class="p">)</span>
+            <span class="n">wind_rec_cols</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; +&#39;</span><span class="p">,</span> <span class="n">wind_record</span><span class="p">)</span>
+            <span class="n">imgNo</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">UT_1</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">UT_2</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">UT_mid</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">los</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+            <span class="n">i_los</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+            <span class="n">wind</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+            <span class="n">gradient</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span>
+            <span class="n">wind_desc</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">8</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">qcode</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">wind_err_record</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">winds_datalines</span><span class="p">)</span>
+            <span class="n">wind_err_cols</span> <span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; +&#39;</span><span class="p">,</span> <span class="n">wind_err_record</span><span class="p">)</span>
+            <span class="n">err_los</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_err_cols</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">err_ilos</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_err_cols</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">err_wind</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_err_cols</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">err_gradient</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_err_cols</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+            <span class="c1"># now populate the arrays with the values just read</span>
+            <span class="n">wind_data</span><span class="p">[</span><span class="s2">&quot;lookdir&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lookdir</span>
+            <span class="n">wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;imgno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">imgNo</span>
+            <span class="n">wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;ut1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">UT_1</span>
+            <span class="n">wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;ut2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">UT_2</span>
+            <span class="n">wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;ut_mid&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">UT_mid</span>
+            <span class="n">wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;los&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">los</span>
+            <span class="n">wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;los_err&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">err_los</span>
+            <span class="n">wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;ilos&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">i_los</span>
+            <span class="n">wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;ilos_err&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">err_ilos</span>
+            <span class="n">wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;wind&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wind</span>
+            <span class="n">wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;wind_err&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">err_wind</span>
+            <span class="n">wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;gradient&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gradient</span>
+            <span class="n">wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;gradient_err&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">err_gradient</span>
+            <span class="n">wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;wind_desc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wind_desc</span>
+            <span class="n">wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;qcode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">qcode</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">hmax</span><span class="p">,</span> <span class="n">emission_layer</span><span class="p">,</span> <span class="n">wind_data</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">read_winds_vertwinds_detail</span><span class="p">():</span>
+        <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">n_vert_winds</span><span class="p">)</span> <span class="o">=</span> <span class="n">read_vert_winds_summary</span><span class="p">()</span>
+        <span class="n">skip_line</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">winds_datalines</span><span class="p">)</span>
+        <span class="n">skip_line</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">winds_datalines</span><span class="p">)</span>
+        <span class="n">skip_line</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">winds_datalines</span><span class="p">)</span>
+        <span class="n">vert_wind_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_vert_winds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;names&#39;</span><span class="p">:(</span><span class="s1">&#39;imgno&#39;</span><span class="p">,</span> <span class="s1">&#39;ut1&#39;</span><span class="p">,</span> <span class="s1">&#39;ut2&#39;</span><span class="p">,</span> <span class="s1">&#39;ut_mid&#39;</span><span class="p">,</span> <span class="s1">&#39;vert&#39;</span><span class="p">,</span> <span class="s1">&#39;vert_err&#39;</span><span class="p">,</span> <span class="s1">&#39;qcode&#39;</span><span class="p">),</span>
+                <span class="s1">&#39;formats&#39;</span><span class="p">:(</span><span class="s1">&#39;i4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span> <span class="s1">&#39;i4&#39;</span><span class="p">)})</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_vert_winds</span><span class="p">)</span> <span class="p">:</span>
+            <span class="n">wind_record</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">winds_datalines</span><span class="p">)</span>
+            <span class="c1"># if it contains the string &quot;order&quot; skip it because we are </span>
+            <span class="c1"># ingesting only the derived relative vertical winds from all orders,</span>
+            <span class="c1"># and not ingesting vertical wind information for each order (fringe)</span>
+            <span class="k">while</span><span class="p">(</span> <span class="s2">&quot;order&quot;</span> <span class="ow">in</span> <span class="n">wind_record</span><span class="p">):</span> 
+                <span class="n">wind_record</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">winds_datalines</span><span class="p">)</span>
+            <span class="n">wind_rec_cols</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; +&#39;</span><span class="p">,</span> <span class="n">wind_record</span><span class="p">)</span>
+            <span class="n">imgNo</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">UT_1</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">UT_2</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">UT_mid</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="nb">bin</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+            <span class="n">ebin</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+            <span class="n">vert</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+            <span class="n">e_vert</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span>
+            <span class="n">qcode</span> <span class="o">=</span> <span class="n">read_float</span><span class="p">(</span><span class="n">wind_rec_cols</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="c1"># now populate the arrays with the values just read</span>
+            <span class="n">vert_wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;imgno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">imgNo</span>
+            <span class="n">vert_wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;ut1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">UT_1</span>
+            <span class="n">vert_wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;ut2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">UT_2</span>
+            <span class="n">vert_wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;imgno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">imgNo</span>
+            <span class="n">vert_wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;ut_mid&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">UT_mid</span>
+            <span class="n">vert_wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;vert&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vert</span>
+            <span class="n">vert_wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;vert_err&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">e_vert</span>
+            <span class="n">vert_wind_data</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;qcode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">qcode</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">vert_wind_data</span><span class="p">)</span>
+                       
+    <span class="n">winds_datalines</span> <span class="o">=</span> <span class="n">winds_data_iterator</span><span class="p">()</span>
+    <span class="n">winds_hdr</span> <span class="o">=</span> <span class="n">read_winds_header_details</span><span class="p">()</span>
+    <span class="p">(</span><span class="n">hmax_n</span><span class="p">,</span> <span class="n">e_layer_n</span><span class="p">,</span> <span class="n">wind_data_n</span><span class="p">)</span> <span class="o">=</span> <span class="n">read_winds_cardinal_detail</span><span class="p">()</span>
+    <span class="p">(</span><span class="n">hmax_s</span><span class="p">,</span> <span class="n">e_layer_s</span><span class="p">,</span> <span class="n">wind_data_s</span><span class="p">)</span> <span class="o">=</span> <span class="n">read_winds_cardinal_detail</span><span class="p">()</span>
+    <span class="p">(</span><span class="n">hmax_e</span><span class="p">,</span> <span class="n">e_layer_e</span><span class="p">,</span> <span class="n">wind_data_e</span><span class="p">)</span> <span class="o">=</span> <span class="n">read_winds_cardinal_detail</span><span class="p">()</span>
+    <span class="p">(</span><span class="n">hmax_w</span><span class="p">,</span> <span class="n">e_layer_w</span><span class="p">,</span> <span class="n">wind_data_w</span><span class="p">)</span> <span class="o">=</span> <span class="n">read_winds_cardinal_detail</span><span class="p">()</span>
+    <span class="n">wind_data_v</span> <span class="o">=</span> <span class="n">read_winds_vertwinds_detail</span><span class="p">()</span>
+
+    <span class="n">winds_hdr</span><span class="p">[</span><span class="s2">&quot;hmax_n&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hmax_n</span>
+    <span class="n">winds_hdr</span><span class="p">[</span><span class="s2">&quot;emission_layer_n&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">e_layer_n</span>
+    <span class="n">winds_hdr</span><span class="p">[</span><span class="s2">&quot;hmax_s&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hmax_s</span>
+    <span class="n">winds_hdr</span><span class="p">[</span><span class="s2">&quot;emission_layer_s&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">e_layer_s</span>
+    <span class="n">winds_hdr</span><span class="p">[</span><span class="s2">&quot;hmax_e&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hmax_e</span>
+    <span class="n">winds_hdr</span><span class="p">[</span><span class="s2">&quot;emission_layer_e&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">e_layer_e</span>
+    <span class="n">winds_hdr</span><span class="p">[</span><span class="s2">&quot;hmax_w&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hmax_w</span>
+    <span class="n">winds_hdr</span><span class="p">[</span><span class="s2">&quot;emission_layer_w&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">e_layer_w</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Merge the north and south winds data to return meridional wind info</span>
+<span class="sd">    &quot;&quot;&quot;</span>  
+    <span class="n">merid_winds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">wind_data_n</span><span class="p">,</span> <span class="n">wind_data_s</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">merid_winds_sorted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">merid_winds</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;ut_mid&quot;</span><span class="p">)</span>
+    <span class="c1"># convert the meridional winds np array  to a dictionary</span>
+    <span class="n">merid_winds_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">merid_winds_sorted</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+        <span class="n">merid_winds_dict</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">merid_winds_sorted</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span>
+    <span class="sd">&quot;&quot;&quot;&quot;</span>
+<span class="sd">    Merge the east and west winds data to return zonal wind info</span>
+<span class="sd">    &quot;&quot;&quot;</span>  
+    <span class="n">zonal_winds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span> <span class="p">(</span><span class="n">wind_data_e</span><span class="p">,</span> <span class="n">wind_data_w</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">zonal_winds_sorted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">zonal_winds</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;ut_mid&quot;</span><span class="p">)</span>
+    <span class="c1"># convert the zonal winds np array  to a dictionary</span>
+    <span class="n">zonal_winds_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">zonal_winds_sorted</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+        <span class="n">zonal_winds_dict</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">zonal_winds_sorted</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span>
+
+    <span class="c1"># convert the vertical winds np array  to a dictionary</span>
+    <span class="n">vert_winds_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">wind_data_v</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+        <span class="n">vert_winds_dict</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">wind_data_v</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span>
+
+    <span class="n">winds_data</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;header&quot;</span> <span class="p">:</span> <span class="n">winds_hdr</span><span class="p">,</span>
+        <span class="s2">&quot;meridional&quot;</span> <span class="p">:</span> <span class="n">merid_winds_dict</span><span class="p">,</span>
+        <span class="s2">&quot;zonal&quot;</span> <span class="p">:</span> <span class="n">zonal_winds_dict</span><span class="p">,</span>
+        <span class="s2">&quot;vertical&quot;</span> <span class="p">:</span> <span class="n">vert_winds_dict</span><span class="p">}</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">winds_data</span><span class="p">)</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">argument_parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+    <span class="n">argument_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;winds_datfile&quot;</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The full path of the *winds.dat file to be parsed.&quot;</span>
+    <span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">argument_parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">fpi_winds</span> <span class="o">=</span> <span class="n">fpi_winds_filereader</span><span class="p">(</span> <span class="n">args</span><span class="o">.</span><span class="n">winds_datfile</span><span class="p">)</span>
+
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Winds header data:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="n">fpi_winds</span><span class="p">[</span><span class="s2">&quot;header&quot;</span><span class="p">])</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;meridional winds:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="n">fpi_winds</span><span class="p">[</span><span class="s2">&quot;meridional&quot;</span><span class="p">])</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Zonal winds:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="n">fpi_winds</span><span class="p">[</span><span class="s2">&quot;zonal&quot;</span><span class="p">])</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Relative vertical winds:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="n">fpi_winds</span><span class="p">[</span><span class="s2">&quot;vertical&quot;</span><span class="p">])</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2022, Sudha Kapali
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
