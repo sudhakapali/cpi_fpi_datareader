@@ -3,17 +3,138 @@ import argparse
 import re
 import datetime
 import numpy as np
-
-
-"""
-    fpi_winds_filereader is the reader function for the FPI Winds data products files.
-     The winds data file as published by the FPI data analysis program has 4 segments:
-    -- A header section with instrument parameters and summary statistics for the observation night
-    -- Meridional winds
-    -- Zonal winds
-    -- The relative vertical winds 
-"""
 def fpi_winds_filereader(winds_datfile):
+    """   
+    .. function: fpi_winds_filereader
+
+    :synopsis: fpi_winds_filereader is the reader function for the FPI Winds data products files
+   
+    The winds data file as published by the FPI data analysis program has 4 segments
+
+    * A header section with instrument parameters and summary statistics for the observation night
+    * Meridional winds
+    * Zonal winds
+    * The relative vertical winds
+
+    :Args:
+    
+        winds_datfile (str): The full pathname of the winds data products file to be read
+
+    :return: A dictionary with the contents of the winds data products file.
+
+    :rtype: dict
+
+    winds_data : dict[str, dict]
+    dict of {
+        "header" : dict,    # information from the header section of the data products file  \n
+        "meridional": dict, # meridional winds data \n
+        "zonal": dict,      # zonal winds data \n
+        "vertical": dict    # meridional winds data \n
+    }
+    
+        Example 1:  Retrieve meridional winds, meridional winds error estimates and UT time for \n
+        each meridional measurement. \n
+
+        .. code-block:: python
+
+            fpi_winds = fpi_winds_filereader(winds_file) 
+            winds_hdr = fpi_winds["header"]              
+            merid_winds = fpi_winds["meridional"]
+            # extract meridional wind velocity
+            m_wind = merid_winds["wind"]
+            m_wind_err = merid_winds["wind_err"]
+            # extract UT time of the meridional wind measurement
+            m_ut_time = merid_winds["ut_mid"]
+      
+        Example 2:  Retrieve zonal winds, zonal winds error estimates and UT time for \n
+        each zonal measurement. \n
+
+        .. code-block:: python
+
+            fpi_winds = fpi_winds_filereader(winds_file) 
+            zonal_winds = fpi_winds["zonal"]
+            # extract zonal wind velocity
+            z_wind = zonal_winds["wind"]
+            z_wind_err = zonal_winds["wind_err"]
+            # extract UT time of the zonal wind measurement
+            z_ut_time = zonal_winds["ut_mid"]
+
+        :Type Description for fpi_winds["header"]: 
+
+        winds_hdr: dict[str, Any] \n
+            dict of { \n
+                "expt" : str, # experiment name \n
+                "location_name" : str,          # location name \n
+                "obs_date" : datetime.datetime, # observation date \n
+                "latitude" : str,               # latitude (positive north, negative south) \n
+                "longitude" : str,              # longitude (positive east, negative west) \n
+                "version_num : float,           # software version number (major rev.minor rev) \n
+                "hdr_lines" : list,             # List of strings with the rest of the header lines from the data products files \n
+                "hmax_n" : float,               # Assumed height of HMAX, in kms, in the north direction \n
+                "hmax_s" : float,               # Assumed height of HMAX, in kms, in the south direction \n
+                "hmax_e" : float,               # Assumed height of HMAX, in kms, in the east direction \n
+                "hmax_w" : float,               # Assumed height of HMAX, in kms, in the west direction \n
+                "emission_layer_n" : float,     # Assumed height of the emission layer, in kms, in the north direction \n
+                "emission_layer_s" : float,     # Assumed height of the emission layer, in kms, in the south direction \n
+                "emission_layer_e" : float,     # Assumed height of the emission layer, in kms, in the east direction \n
+                "emission_layer_w" : float      # Assumed height of the emission layer, in kms, in the west direction \n
+            } \n
+
+        :Type Description for fpi_winds["meridional"]: 
+
+        merid_winds : dict[str, numpy.ndarray] \n
+            dict of { \n
+                "imgno"  : numpy.ndarray of numpy.int32, # image sequence number \n
+                "ut1"    :  numpy.ndarray of numpy.float32, # acquisition start time, in number of hours since start date \n
+                "ut2"    :  numpy.ndarray of numpy.float32, # acquisition end time, in number of hours since start date \n
+                "ut_mid" :  numpy.ndarray of numpy.float32, # timestamp at the middle of acquisition, in number of hours since start date \n
+                "lookdir" :  numpy.ndarray of numpy.str\_, # Look direction. "North" or "South" \n
+                "los" :  numpy.ndarray of numpy.float32, # Line of sight wind measurement in m/s \n
+                "los_err" :  numpy.ndarray of numpy.float32, # Line of sight wind error estimate in m/s \n
+                "ilos" :  numpy.ndarray of numpy.float32, # Interpolated Line of sight wind measurement in the opposite look direction, in m/s \n
+                "ilos_err" :  numpy.ndarray of numpy.float32, # Line of sight wind error estimate of the interpolated wind measurement, in m/s \n
+                "wind" :  numpy.ndarray of numpy.float32, # meridional wind measurement, in m/s \n
+                "wind_err" :  numpy.ndarray of numpy.float32, # Meridional wind error estimate, in m/s \n
+                "gradient" :  numpy.ndarray of numpy.float32, # Wind gradient, m/s per 500 kms  \n
+                "gradient_err" :  numpy.ndarray of numpy.float32, # Wind gradient error estimate, in m/s per 500 kms \n
+                "wind_desc" :  numpy.ndarray of numpy.str\_, # Description of the wind - Empty string, "converging", "diverging"  \n
+                "qcode" :  numpy.ndarray of numpy.float32, # Data quality code.  code=0 trustworthy;  code=1 be suspicious;  code=2 be dubious \n
+            } \n
+
+        :Type Description for fpi_winds["zonal"]: 
+
+        zonal_winds : dict[str, numpy.ndarray] \n
+            dict of { \n
+                "imgno"  : numpy.ndarray of numpy.int32, # image sequence number \n
+                "ut1"    :  numpy.ndarray of numpy.float32, # acquisition start time, in number of hours since start date \n
+                "ut2"    :  numpy.ndarray of numpy.float32, # acquisition end time, in number of hours since start date \n
+                "ut_mid" :  numpy.ndarray of numpy.float32, # timestamp at the middle of acquisition, in number of hours since start date \n
+                "lookdir" :  numpy.ndarray of numpy.str\_, # Look direction. "East" or "West" \n
+                "los" :  numpy.ndarray of numpy.float32, # Line of sight wind measurement in m/s \n
+                "los_err" :  numpy.ndarray of numpy.float32, # Line of sight wind error estimate in m/s \n
+                "ilos" :  numpy.ndarray of numpy.float32, # Interpolated Line of sight wind measurement in the opposite look direction, in m/s \n
+                "ilos_err" :  numpy.ndarray of numpy.float32, # Line of sight wind error estimate of the interpolated wind measurement, in m/s \n
+                "wind" :  numpy.ndarray of numpy.float32, # Zonal wind measurement, in m/s \n
+                "wind_err" :  numpy.ndarray of numpy.float32, # Zonal wind error estimate, in m/s \n
+                "gradient" :  numpy.ndarray of numpy.float32, # Wind gradient, m/s per 500 kms  \n
+                "gradient_err" :  numpy.ndarray of numpy.float32, # Wind gradient error estimate, in m/s per 500 kms \n
+                "wind_desc" :  numpy.ndarray of numpy.str\_, # Description of the wind - Empty string, "converging", "diverging"  \n
+                "qcode" :  numpy.ndarray of numpy.float32, # Data quality code.  code=0 trustworthy;  code=1 be suspicious;  code=2 be dubious \n
+            } \n
+
+        :Type Description for fpi_winds["vertical"]: 
+
+        vert_winds : dict[str, numpy.ndarray] \n
+            dict of { \n
+                "imgno"  : numpy.ndarray of numpy.int32, # image sequence number \n
+                "ut1"    :  numpy.ndarray of numpy.float32, # acquisition start time, in number of hours since start date \n
+                "ut2"    :  numpy.ndarray of numpy.float32, # acquisition end time, in number of hours since start date \n
+                "ut_mid" :  numpy.ndarray of numpy.float32, # timestamp at the middle of acquisition, in number of hours since start date \n
+                "vert" :  numpy.ndarray of numpy.float32, # Relative vertical wind measurement, in m/s \n
+                "vert_err" :  numpy.ndarray of numpy.float32, # Relative vertical wind error estimate, in m/s \n
+                "qcode" :  numpy.ndarray of numpy.float32, # Data quality code.  code=0 trustworthy;  code=1 be suspicious;  code=2 be dubious \n
+            } \n
+    """ 
     def read_float(string_lit):
         flt_val = float('NaN')
         try:

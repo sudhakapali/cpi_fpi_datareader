@@ -2,13 +2,109 @@ import argparse
 import re
 import datetime
 import numpy as np
-"""
-    fpi_temps_filereader is the reader function for the FPI Temperature data products files.
-     The temperature data file as published by the FPI data analysis program has 2 segments:
-    -- A header section with instrument parameters and summary statistics for the observation night
-    -- The temperature data products derived from each image in the observation night
-"""
 def fpi_temps_filereader(temps_datfile):
+    """
+    .. function: fpi_temps_filereader
+
+    :synopsis: fpi_temps_filereader is the reader function for the FPI temperature data products files.
+
+        The temperature data file as published by the FPI data analysis program has 2 segments \:
+
+        * A header section with instrument parameters and summary statistics for the observation night
+        * The temperature data products derived from each image in the observation night
+
+    :Args:
+    
+        temps_datfile (str): The full pathname of the temperature data products file to be read
+ 
+    :Returns: 
+    
+        temps_data (dict): A dictionary with the contents of the temperature data products file
+
+    :rtype: 
+    
+    temps_data : dict[str, dict]
+    dict of {
+        "header" : dict,    # information from the header section of the temperature data products file  \n
+        "data": dict        # temperature data \n
+    }
+    
+    Example 1: Retrieve tempeture, termperature error estimates and time of measurement for zenith measurements \n
+    
+    .. code-block:: python
+
+        # read in the temperature data products
+        fpi_temps = fpi_temps_filereader(temps_file)
+        temps_hdr = fpi_temps["header"]
+        temps_data = fpi_temps["data"]
+        # Get the indices corresponding to the zenith and 4 directions
+        zenith_pos = np.where(temps_data["zn"] == 0)
+        north_pos = np.where( (temps_data["zn"] == 45) & (temps_data["az"] == 0))
+        south_pos = np.where( (temps_data["zn"] == 45) & (temps_data["az"] == 180))
+        east_pos = np.where( (temps_data["zn"] == 45) & (temps_data["az"] == 90))
+        west_pos = np.where( (temps_data["zn"] == 45) & (temps_data["az"] == 270))
+        # gather the temperature measurements in the zenith direction
+        tmid_z = temps_data["ut_mid"][zenith_pos]
+        temp_z = temps_data["temp"][zenith_pos]
+        e_temp_z = temps_data["e_temp"][zenith_pos]
+        e_time_z = temps_data["e_time"][zenith_pos]
+
+    Example 2: Retrieve tempeture, termperature error estimates and time of measurement for north and south measurements 
+        and merge them as "meridional" measurements \n
+
+    .. code-block:: python
+
+        # read in the temperature data products
+        fpi_temps = fpi_temps_filereader(temps_file)
+        temps_data = fpi_temps["data"]
+        # Get the indices corresponding to the north and south measurements
+        north_pos = np.where( (temps_data["zn"] == 45) & (temps_data["az"] == 0))
+        south_pos = np.where( (temps_data["zn"] == 45) & (temps_data["az"] == 180))
+        merid_pos = np.concatenate( (north_pos, south_pos), axis=None )
+        # Gather the temperature and time measurements in the meridional direction
+        tmid_m = temps_data["ut_mid"][merid_pos]
+        temp_m = temps_data["temp"][merid_pos]    # temperature in Kelvin
+        e_temp_m = temps_data["e_temp"][merid_pos]  # +/- error in temperature
+        e_time_m = temps_data["e_time"][merid_pos]  # +/- error in time
+        # sort them in ascending order of acquisition time
+        merid_pos_sorted = np.argsort(tmid_m)
+        tmid_m = tmid_m[merid_pos_sorted]
+        temp_m = temp_m[merid_pos_sorted]    # temperature in Kelvin
+        e_temp_m = e_temp_m[merid_pos_sorted]  # +/- error in temperature
+        e_time_m = e_time_m[merid_pos_sorted]  # +/- error in time
+
+    Following is the desciption of value of fpi_temps["header"] \n
+
+    temps_hdr: dict[str, Any] \n
+        dict of { \n
+            "expt" : str, # experiment name \n
+            "location_name" : str,          # location name \n
+            "obs_date" : datetime.datetime, # observation date \n
+            "latitude" : str,               # latitude (positive north, negative south) \n
+            "longitude" : str,              # longitude (positive east, negative west) \n
+            "version_num : float,           # software version number (major rev.minor rev) \n
+            "hdr_lines" : list              # List of strings with the rest of the header lines from the data products files \n
+        } \n
+
+    Following is the desciption of value of fpi_temps["data"] \n
+    temps_data : dict[str, numpy.ndarray] \n
+            dict of { \n
+                "imgno"  : numpy.ndarray of numpy.int32, # image sequence number \n
+                "ut1"    :  numpy.ndarray of numpy.float32, # acquisition start time, in number of hours since start date \n
+                "ut2"    :  numpy.ndarray of numpy.float32, # acquisition end time, in number of hours since start date \n
+                "ut_mid" :  numpy.ndarray of numpy.float32, # timestamp at the middle of acquisition, in number of hours since start date \n
+                "az" :  numpy.ndarray of numpy.float32, # Azimuth angle of look direction, in degrees \n
+                "zn" :  numpy.ndarray of numpy.float32, # Zenith angle of look direction, in degrees \n
+                "signal" :  numpy.ndarray of numpy.float32, # Relative signal strength, in A.D.U / pixel \n
+                "e_signal" :  numpy.ndarray of numpy.float32, # Relative signal strength error estimate, in A.D.U / pixel \n
+                "bkgnd" :  numpy.ndarray of numpy.float32, # Relative background , in A.D.U / pixel \n
+                "e_bkgnd" :  numpy.ndarray of numpy.float32, # Relative background strength error estimate, in A.D.U / pixel \n
+                "temp" :  numpy.ndarray of numpy.float32, # Temperature, in degrees K \n
+                "e_temp" :  numpy.ndarray of numpy.float32, # Temperature error estimate, in degrees K \n
+                "moon"   : numpy.ndarray of numpy.float32, # Percentage of the moon's synodic cycle \n
+                "qcode" :  numpy.ndarray of numpy.float32, # Data quality code.  code=0 trustworthy;  code=1 be suspicious;  code=2 be dubious \n
+            } \n
+    """
     def read_float(string_lit):
         flt_val = float('NaN')
         try:
@@ -92,7 +188,7 @@ def fpi_temps_filereader(temps_datfile):
         """
         skip_line = next(temps_datalines)
         skip_line = next(temps_datalines)
-        # allocate structured array for each column in the table with winds and errors
+        # allocate structured array for each column in the table with temperature and errors
         temps_data = np.zeros(
             0,
             dtype={
@@ -128,7 +224,7 @@ def fpi_temps_filereader(temps_datfile):
     temps_datalines = temps_data_iterator()
     temps_hdr = read_temp_header_details()
     temps_data = read_temps_detail()
-   # convert the vertical winds np array  to a dictionary
+   # convert the temperature data products file contents to a dictionary
     temps_data_dict = dict()
     for col_name in temps_data.dtype.names:
         temps_data_dict[col_name] = temps_data[col_name]
