@@ -118,8 +118,8 @@ def fpi_temps_filereader(temps_datfile):
             lines = f.readlines()
         for line in lines:
             # skip lines with just whitespace
-            if line.isspace(): 
-                continue
+            #if line.isspace(): 
+            #    continue
             line_stripped = line.strip()
             yield line_stripped
 
@@ -129,10 +129,14 @@ def fpi_temps_filereader(temps_datfile):
             the "SS-Analyze" string
         """
         temps_hdr_lines = list()
-        for line in temps_datalines :
+        versionNumber = 4.0
+        for linecount in np.arange(1,20):
+            line = next(temps_datalines)
             temps_hdr_lines.append(line)
             if ('SS-Analyze' in line) :
-                break
+                # get the version number
+                versionNumberStr = re.split(' ', temps_hdr_lines[-1])[1]
+                versionNumber = read_float(versionNumberStr[1:])
         # Get the name of the experiment (Redline, Greenline)
         expt = ''
         if( "Red".casefold() in (temps_hdr_lines[0]).casefold() ):
@@ -152,9 +156,7 @@ def fpi_temps_filereader(temps_datfile):
         obs_date_day = int(temps_hdr_lines[2][6:8])
         obs_date = datetime.datetime(obs_date_yy, obs_date_mon, obs_date_day)
 
-        # get the version number
-        versionNumberStr = re.split(' ', temps_hdr_lines[-1])[1]
-        versionNumber = read_float(versionNumberStr[1:])
+
 
         latitude = float('NaN')
         longitude = float('NaN')

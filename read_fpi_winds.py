@@ -148,22 +148,27 @@ def fpi_winds_filereader(winds_datfile):
             lines = f.readlines()
         for line in lines:
             # skip lines with just whitespace
-            if line.isspace(): 
-                continue
+            #if line.isspace(): 
+            #    continue
             line_stripped = line.strip()
             yield line_stripped
 
     def read_winds_header_details():
         """
             collect the header lines, which are the first few lines until the line with 
-            the "SS-Analyze" string
+            the "SS-Analyze" string; or for earlier versions, a blank line indicates end of header
         """
         winds_hdr_lines = list()
-        for line in winds_datalines :
+        versionNumber = 4.0
+        for linecount in np.arange(1,20):
+            line = next(winds_datalines)
             winds_hdr_lines.append(line)
+            # For versions < 5.0 the .dat files did not contain the analysis version number.
             if ('SS-Analyze' in line) :
-                break
-        
+                # get the version number
+                versionNumberStr = re.split(' ', line)
+                versionNumber = read_float(versionNumberStr[1:])
+
         # Get the name of the experiment (Redline, Greenline)
         expt = ''
         if( "Red".casefold() in (winds_hdr_lines[0]).casefold() ):
@@ -182,10 +187,6 @@ def fpi_winds_filereader(winds_datfile):
         obs_date_mon = int(winds_hdr_lines[2][4:6])
         obs_date_day = int(winds_hdr_lines[2][6:8])
         obs_date = datetime.datetime(obs_date_yy, obs_date_mon, obs_date_day)
-
-        # get the version number
-        versionNumberStr = re.split(' ', winds_hdr_lines[-1])[1]
-        versionNumber = read_float(versionNumberStr[1:])
 
         latitude = float('NaN')
         longitude = float('NaN')
